@@ -1,5 +1,5 @@
 /*
- * Students List
+* Students List
  * -------------
  * Exercise console program for work with students data
  *
@@ -18,95 +18,145 @@
 #include <string.h>
 #include <stdlib.h>
 
-int state = 0;
+unsigned int state = 0;
+unsigned int read_count = 0;
+unsigned int read_capacity = 0;
+unsigned int read_record = 0;
+unsigned int read_id = 0;
+unsigned int read_gpa = 0;
+unsigned int read_name = 0;
 
-typedef enum{START, MENU, ADD, SHOW, SEARCH, EDIT, DELETE, EXIT}State;
+typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, END}State;
 
-//structure of record
 typedef struct {
-    int ID;
-    int age;
-    double GPA;
+    unsigned int id;
+    unsigned int gpa;
     char* name;
-    char* direction;
 }Student;
 
-//general structure for list of records
 typedef struct {
-    int count;
-    int capacity;
-    Student* student;
+    unsigned int count;
+    unsigned int capacity;
+    Student* students;
 }List;
 
+List* list = NULL;
 
+void start();
+void menu();
+void show();
+void add();
+void edit();
+void delete();
+void end();
 
-void AddRecord() {
-
-};
-
-void ShowRecord();
-
-void SearchRecord();
-
-void EditRecord();
-
-void DeleteRecord();
-
-int ExitProgram() {
-
-    state = EXIT;
-    return EXIT_SUCCESS;
-};
-
-void menu() {
-    state = MENU;
-    while (state != EXIT) {
-        printf("EXERSICE CONSOLE PROGRAM STUDENT LIST\n");
-        printf("1 - Show Students list\n");
-        printf("2 - Add a Record\n");
-        printf("3 - Search for a Record by ID\n");
-        printf("4 - Exit Program\n");
-
-        int choice;
-        scanf("%d",&choice);
-        switch (choice) {
-            case 1: ShowRecord(); break;
-            case 2: AddRecord(); break;
-            case 3: SearchRecord(); break;
-            case 4: ExitProgram(); break;
-            default: printf("Invalid input\n"); break;
+int main(int argc, char** argv) {
+    //Call  initialization function
+    start();
+    while (state != END){
+        //Call the necessary action by switching states
+        switch (state) {
+            case MENU: menu(); break;
+            case SHOW: show(); break;
+            case ADD: add(); break;
+            case EDIT: edit(); break;
+            case DELETE: delete(); break;
+            case END: end(); break;
+            default: menu(); break;
         }
     }
-};
+}
 
-//initialization function
 void start() {
     state = START;
+    //open data file
     FILE* file = fopen("students.dat", "rb");
-    if (file == NULL) {
+    if (file) {
+        //memory allocation for students list structure
+        list = (List*)malloc(sizeof(List));
+        list->count = 0;
+        list->capacity = 0;
+        list->students = NULL;
+
+        //Read fields
+        read_count = fread(&list->count, sizeof(unsigned int), 1, file);
+        read_capacity = fread(&list->capacity, sizeof(unsigned int), 1, file);
+
+        //Memory allocation for record structure
+        list->students = (Student*)malloc(list->capacity * sizeof(Student));
+
+        //Checking for a correct memory allocation
+        if (read_count != 1 || read_capacity != 1 || list->count > list->capacity) {
+            free(list->students);
+            list->students = NULL;
+            list->capacity = list->count= 0;
+        }
+
+        unsigned int len;
+        for (size_t i = 0; i < list->capacity; i++) {list->students[i].name = NULL;}
+
+        for (int i = 0; i < list->count; i++) {
+            //read record structure fields
+            read_id = fread(&list->students[i].id, sizeof(unsigned int), 1, file);
+            read_gpa = fread(&list->students[i].gpa, sizeof(unsigned int), 1, file);
+
+            //read a name length in a current record
+            fread(&len, sizeof(unsigned int), 1, file);
+
+            //memory allocation for name array
+            list->students[i].name = malloc(len + 1);
+
+            //read name field from current record
+            read_name = fread(list->students[i].name, 1, len,  file);
+            list->students[i].name[len] = '\0';
+        }
+        fclose(file);
+    }else {
+        //Create .dat file if it doesn't exist
         file = fopen("students.dat", "wb");
+
+        //Memory allocation for a list structure
+        list = (List*)malloc(sizeof(List));
+        list->count = 0;
+        list->capacity = 0;
+        list->students = NULL;
         fclose(file);
-        menu();
-    }else{
-        fclose(file);
-        menu();
     }
+
+    //Change state for switch a mode
+    state = MENU;
 }
 
-int main(int argc, char* argv[]){
-    state = START;
-    while (state != EXIT) {
-        switch (state) {
-            case START: start(); break;
-                case MENU: menu(); break;
-                case ADD: AddRecord(); break;
-                case SEARCH: SearchRecord(); break;
-                case EDIT: EditRecord(); break;
-                case DELETE: DeleteRecord(); break;
-                case EXIT: ExitProgram(); break;
-                default: break;
+void menu() {
+    int input;
+
+    while (1) {
+        printf("STUDENTS LIST CONSOLE EXERCISE PROGRAM\n");
+        printf("Please choose the action and press Enter: ");
+        printf("1 - Show students list\n");
+        printf("2 - Add record\n");
+        printf("3 - Edit record\n");
+        printf("4 - Delete record\n");
+        printf("0 - Exit\n");
+        printf("---------------------------------\n");
+
+        if (scanf("%d", &input) != 1) {
+            printf("Incorrect input!\nPress Enter to continue");
+            while (getchar() != '\n');
+            getchar();
+            continue;
+        }
+
+            while (getchar() != '\n');
+
+            //Choose a state
+            switch (input) {
+                case 1: state = SHOW; return;
+                case 2: state = ADD; return;
+                case 3: state = EDIT; return;
+                case 4: state = DELETE; return;
+                case 0: state = END; return;
+                default: return;
+            }
         }
     }
-
-    return EXIT_SUCCESS;
-}
