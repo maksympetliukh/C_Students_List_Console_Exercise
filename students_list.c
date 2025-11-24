@@ -160,3 +160,58 @@ void menu() {
             }
         }
     }
+
+void add() {
+    if (list->count == list->capacity) {
+        unsigned int new_capacity = (list->capacity == 0) ? 8 : list->capacity * 2;
+        Student* new_students = (Student*)realloc(list->students, new_capacity * sizeof(Student));
+        if (new_students == NULL) {
+            printf("Out of memory!\n");
+            printf("Press Enter to continue");
+            getchar();
+            return;
+        }
+
+        list->students = new_students;
+        list->capacity = new_capacity;
+    }
+
+    unsigned int temp_id;
+    unsigned int temp_gpa;
+    char* temp_name = NULL;
+    size_t size = 0;
+
+    printf("Enter the student id: ");
+    scanf("%u", &temp_id);
+    while (getchar() != '\n');
+
+    printf("Enter the student GPA: ");
+    scanf("%u", &temp_gpa);
+    while (getchar() != '\n');
+
+    printf("Enter the student name: ");
+    ssize_t check = getline(&temp_name, &size, stdin);
+    if (check <= 0) {
+        printf("Incorrect input!\n");
+        printf("Press Enter to continue");
+        getchar();
+        return;
+    }
+    if (temp_name[strlen(temp_name) - 1] == '\n') {
+        temp_name[strlen(temp_name) - 1] = '\0';
+    }
+    if (strlen(temp_name) == 0) {
+        printf("Name cannot be empty!\n");
+        free(temp_name);
+        state = MENU;
+        return;
+    }
+
+
+    list->students[list->count].id = temp_id;
+    list->students[list->count].gpa = temp_gpa;
+    list->students[list->count].name = temp_name;
+
+    list->count++;
+    state = MENU;
+}
