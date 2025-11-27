@@ -215,3 +215,15 @@ void add() {
     list->count++;
     state = MENU;
 }
+
+void show() {
+    if (list->count <= 0) {
+        printf("No records found!\n"); state = MENU;
+    }else {
+        for (size_t i = 0; i < list->count; i++) {
+            printf("%zu. Name: %s\nID: %u\nGPA: %u\n====================\n", i, list->students[i].name, list->students[i].id, list->students[i].gpa );
+        }
+    }
+
+    state = MENU;
+}
