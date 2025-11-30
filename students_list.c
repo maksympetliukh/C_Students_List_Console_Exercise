@@ -48,6 +48,7 @@ void show();
 void add();
 void edit();
 void delete();
+void save();
 void end();
 
 int main(int argc, char** argv) {
@@ -223,6 +224,76 @@ void show() {
         for (size_t i = 0; i < list->count; i++) {
             printf("%zu. Name: %s\nID: %u\nGPA: %u\n====================\n", i, list->students[i].name, list->students[i].id, list->students[i].gpa );
         }
+    }
+
+    state = MENU;
+}
+
+void edit() {
+    unsigned int input;
+    unsigned int temp_id;
+    unsigned int temp_gpa;
+    char* temp_name = NULL;
+    size_t size = 0;
+    unsigned int flag = 0;
+    unsigned int unique = 0;
+
+    printf("Enter the student ID: ");
+    scanf("%u", &input);
+    while (getchar() != '\n');
+
+    for (size_t i = 0; i < list->count; i++) {
+        if (list->students[i].id == input) {
+
+            do {
+                unique = 0;
+                printf("Enter the new ID: ");
+                scanf("%u", &temp_id);
+                while (getchar() != '\n');
+
+                for (size_t j = 0; j < list->count; j++) {
+                    if (j != i && list->students[j].id == temp_id) {
+                        unique = 1;
+                        printf("This ID is already exists!\n");
+                        break;
+                    }
+                }
+            }while (unique);
+
+            printf("Enter the student GPA: ");
+            scanf("%u", &temp_gpa);
+            while (getchar() != '\n');
+
+            printf("Enter the student name: ");
+            ssize_t check = getline(&temp_name, &size, stdin);
+            if (check <= 0) {
+                printf("Incorrect input!\n");
+                printf("Press Enter to continue");
+                getchar();
+                return;
+            }
+            if (temp_name[strlen(temp_name) - 1] == '\n') {
+                temp_name[strlen(temp_name) - 1] = '\0';
+            }
+            if (strlen(temp_name) == 0) {
+                free(temp_name);
+                printf("Name cannot be empty!\n");
+                state = MENU;
+                return;
+            }
+
+            free(list->students[i].name);
+            list->students[i].id = temp_id;
+            list->students[i].gpa = temp_gpa;
+            list->students[i].name = temp_name;
+
+            flag = 1;
+            break;
+        }
+    }
+
+    if (flag == 0) {
+        printf("Student not found!\n");
     }
 
     state = MENU;
