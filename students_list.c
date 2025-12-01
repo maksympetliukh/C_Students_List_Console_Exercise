@@ -26,7 +26,7 @@ unsigned int read_id = 0;
 unsigned int read_gpa = 0;
 unsigned int read_name = 0;
 
-typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, END}State;
+typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, SAVE, END}State;
 
 typedef struct {
     unsigned int id;
@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
             case ADD: add(); break;
             case EDIT: edit(); break;
             case DELETE: delete(); break;
+            case SAVE: save(); break;
             case END: end(); break;
             default: menu(); break;
         }
@@ -214,7 +215,7 @@ void add() {
     list->students[list->count].name = temp_name;
 
     list->count++;
-    state = MENU;
+    state = SAVE;
 }
 
 void show() {
@@ -296,5 +297,68 @@ void edit() {
         printf("Student not found!\n");
     }
 
+    state = SAVE;
+}
+
+void save() {
+    FILE* f = fopen("students.dat", "wb");
+    if (!f){printf("Can't open file!\n"); return;}
+
+    read_count = fwrite(&list->count, sizeof(unsigned int), 1, f);
+    read_capacity = fwrite(&list->capacity, sizeof(unsigned int), 1, f);
+
+    for (size_t i = 0; i < list->count; i++) {
+        fwrite(&list->students[i].id, sizeof(unsigned int), 1, f);
+        fwrite(&list->students[i].gpa, sizeof(unsigned int), 1, f);
+
+        unsigned int len = strlen(list->students[i].name) + 1;
+
+        fwrite(&len, sizeof(unsigned int), 1, f);
+        fwrite(&list->students[i].name, sizeof(char), len, f);
+    }
+
+    fclose(f);
     state = MENU;
+}
+
+void delete() {
+    unsigned int input;
+    int found = 0;
+
+    printf("Enter the student ID: ");
+    scanf("%u", &input);
+    while (getchar() != '\n');
+
+    for (size_t i = 0; i < list->count; i++) {
+        if (list->students[i].id == input) {
+            // Освобождаем память для имени
+            if (list->students[i].name)
+                free(list->students[i].name);
+
+            // Сдвигаем все записи справа на одну позицию влево
+            for (size_t j = i; j < list->count - 1; j++) {
+                list->students[j] = list->students[j + 1];
+            }
+
+            list->count--;
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Student not found!\n");
+    } else {
+        printf("Student deleted successfully.\n");
+    }
+
+    state = SAVE;
+}
+
+void end() {
+    save();
+    printf("Press Enter to exit");
+    getchar();
+    while (getchar() != '\n');
+    exit(EXIT_SUCCESS);
 }
