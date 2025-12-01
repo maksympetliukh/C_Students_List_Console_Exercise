@@ -135,7 +135,7 @@ void menu() {
     while (1) {
         printf("STUDENTS LIST CONSOLE EXERCISE PROGRAM\n");
         printf("Please choose the action and press Enter: ");
-        printf("1 - Show students list\n");
+        printf("\n1 - Show students list\n");
         printf("2 - Add record\n");
         printf("3 - Edit record\n");
         printf("4 - Delete record\n");
