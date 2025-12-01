@@ -331,11 +331,10 @@ void delete() {
 
     for (size_t i = 0; i < list->count; i++) {
         if (list->students[i].id == input) {
-            // Освобождаем память для имени
+
             if (list->students[i].name)
                 free(list->students[i].name);
 
-            // Сдвигаем все записи справа на одну позицию влево
             for (size_t j = i; j < list->count - 1; j++) {
                 list->students[j] = list->students[j + 1];
             }
