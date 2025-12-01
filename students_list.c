@@ -314,7 +314,7 @@ void save() {
         unsigned int len = strlen(list->students[i].name) + 1;
 
         fwrite(&len, sizeof(unsigned int), 1, f);
-        fwrite(&list->students[i].name, sizeof(char), len, f);
+        fwrite(list->students[i].name, sizeof(char), len, f);
     }
 
     fclose(f);
@@ -359,6 +359,5 @@ void end() {
     save();
     printf("Press Enter to exit");
     getchar();
-    while (getchar() != '\n');
     exit(EXIT_SUCCESS);
 }
