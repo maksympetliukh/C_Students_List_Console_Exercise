@@ -25,6 +25,7 @@ unsigned int read_record = 0;
 unsigned int read_id = 0;
 unsigned int read_gpa = 0;
 unsigned int read_name = 0;
+int selected_index = -1;
 
 typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, SAVE, END}State;
 
@@ -50,6 +51,7 @@ void edit();
 void delete();
 void save();
 void end();
+void clear();
 
 int main(int argc, char** argv) {
     //Call  initialization function
@@ -71,6 +73,9 @@ int main(int argc, char** argv) {
 
 void start() {
     state = START;
+
+    printf("STUDENTS LIST CONSOLE EXERCISE PROGRAM\n");
+
     //open data file
     FILE* file = fopen("students.dat", "rb");
     if (file) {
@@ -125,20 +130,20 @@ void start() {
         fclose(file);
     }
 
+
     //Change state for switch a mode
     state = MENU;
 }
 
 void menu() {
+    clear();
+
     int input;
 
     while (1) {
-        printf("STUDENTS LIST CONSOLE EXERCISE PROGRAM\n");
-        printf("Please choose the action and press Enter: ");
+        printf("\nPlease choose the action and press Enter: ");
         printf("\n1 - Show students list\n");
         printf("2 - Add record\n");
-        printf("3 - Edit record\n");
-        printf("4 - Delete record\n");
         printf("0 - Exit\n");
         printf("---------------------------------\n");
 
@@ -155,8 +160,6 @@ void menu() {
             switch (input) {
                 case 1: state = SHOW; return;
                 case 2: state = ADD; return;
-                case 3: state = EDIT; return;
-                case 4: state = DELETE; return;
                 case 0: state = END; return;
                 default: return;
             }
@@ -164,6 +167,7 @@ void menu() {
     }
 
 void add() {
+    clear();
     if (list->count == list->capacity) {
         unsigned int new_capacity = (list->capacity == 0) ? 8 : list->capacity * 2;
         Student* new_students = (Student*)realloc(list->students, new_capacity * sizeof(Student));
@@ -193,15 +197,18 @@ void add() {
 
     printf("Enter the student name: ");
     ssize_t check = getline(&temp_name, &size, stdin);
+
     if (check <= 0) {
         printf("Incorrect input!\n");
         printf("Press Enter to continue");
         getchar();
         return;
     }
+
     if (temp_name[strlen(temp_name) - 1] == '\n') {
         temp_name[strlen(temp_name) - 1] = '\0';
     }
+
     if (strlen(temp_name) == 0) {
         printf("Name cannot be empty!\n");
         free(temp_name);
@@ -209,93 +216,133 @@ void add() {
         return;
     }
 
-
     list->students[list->count].id = temp_id;
     list->students[list->count].gpa = temp_gpa;
     list->students[list->count].name = temp_name;
 
     list->count++;
+
     state = SAVE;
 }
 
 void show() {
-    if (list->count <= 0) {
-        printf("No records found!\n"); state = MENU;
-    }else {
-        for (size_t i = 0; i < list->count; i++) {
-            printf("%zu. Name: %s\nID: %u\nGPA: %u\n====================\n", i, list->students[i].name, list->students[i].id, list->students[i].gpa );
-        }
+    clear();
+
+    printf("===STUDENTS LIST===\n\n");
+
+    for (size_t i = 0; i < list->count; i++) {
+        printf("\n%zu. %s\nID: %u\nGPA: %u\n",
+            i, list->students[i].name,
+            list->students[i].id,
+            list->students[i].gpa);
     }
 
-    state = MENU;
+    if (list->count == 0) {
+        printf("No records found!\n");
+        printf("Press Enter to continue");
+        selected_index = -1;
+        state = MENU;
+        getchar();
+        return;
+    }
+
+    int choice;
+    printf("Choose the record: ");
+    scanf("%d", &choice);
+    while (getchar() != '\n');
+
+    if (choice < 0 || choice >= list->count) {
+        printf("Incorrect input!\n");
+        printf("Press Enter to continue");
+        getchar();
+        return;
+    }
+
+    selected_index = choice;
+
+    clear();
+    printf("===CURRENT RECORD===\n\n");
+
+    printf("%s\nID: %u\nGPA: %u\n",
+        list->students[choice].name,
+        list->students[choice].id,
+        list->students[choice].gpa);
+
+    printf("\n1. Edit record\n");
+    printf("2. Delete record\n");
+    printf("3. Back to the menu\n");
+    printf("4. Exit program\n");
+
+    int action;
+    scanf("%d", &action);
+    while (getchar() != '\n');
+
+    switch (action) {
+        case 1: state = EDIT; return;
+        case 2:  state = DELETE; return;
+        case 3: selected_index = -1; state = MENU; return;
+        case 4: state = END; return;
+    }
 }
 
 void edit() {
-    unsigned int input;
+    clear();
+
+    if (selected_index < 0 || selected_index >= list->count) {
+        printf("No record selected!\nPress Enter to continue");
+        getchar();
+        state = MENU;
+        return;
+    }
+
+    int i = selected_index;
+
     unsigned int temp_id;
     unsigned int temp_gpa;
     char* temp_name = NULL;
     size_t size = 0;
-    unsigned int flag = 0;
-    unsigned int unique = 0;
+    unsigned int unique;
 
-    printf("Enter the student ID: ");
-    scanf("%u", &input);
+    do {
+        unique = 0;
+        printf("Enter new ID: ");
+        scanf("%u", &temp_id);
+        while (getchar() != '\n');
+
+        for (size_t j = 0; j < list->count; j++) {
+            if (j != i && list->students[j].id == temp_id) {
+                unique = 1;
+                printf("This ID already exists!\n");
+                break;
+            }
+        }
+    } while (unique);
+
+    printf("Enter new GPA: ");
+    scanf("%u", &temp_gpa);
     while (getchar() != '\n');
 
-    for (size_t i = 0; i < list->count; i++) {
-        if (list->students[i].id == input) {
-
-            do {
-                unique = 0;
-                printf("Enter the new ID: ");
-                scanf("%u", &temp_id);
-                while (getchar() != '\n');
-
-                for (size_t j = 0; j < list->count; j++) {
-                    if (j != i && list->students[j].id == temp_id) {
-                        unique = 1;
-                        printf("This ID is already exists!\n");
-                        break;
-                    }
-                }
-            }while (unique);
-
-            printf("Enter the student GPA: ");
-            scanf("%u", &temp_gpa);
-            while (getchar() != '\n');
-
-            printf("Enter the student name: ");
-            ssize_t check = getline(&temp_name, &size, stdin);
-            if (check <= 0) {
-                printf("Incorrect input!\n");
-                printf("Press Enter to continue");
-                getchar();
-                return;
-            }
-            if (temp_name[strlen(temp_name) - 1] == '\n') {
-                temp_name[strlen(temp_name) - 1] = '\0';
-            }
-            if (strlen(temp_name) == 0) {
-                free(temp_name);
-                printf("Name cannot be empty!\n");
-                state = MENU;
-                return;
-            }
-
-            free(list->students[i].name);
-            list->students[i].id = temp_id;
-            list->students[i].gpa = temp_gpa;
-            list->students[i].name = temp_name;
-
-            flag = 1;
-            break;
-        }
+    printf("Enter new name: ");
+    ssize_t check = getline(&temp_name, &size, stdin);
+    if (check <= 0) {
+        printf("Incorrect input!\nPress Enter to continue");
+        getchar();
+        return;
+    }
+    if (temp_name[strlen(temp_name) - 1] == '\n') {
+        temp_name[strlen(temp_name) - 1] = '\0';
+    }
+    if (strlen(temp_name) == 0) {
+        free(temp_name);
+        printf("Name cannot be empty!\n");
+        state = MENU;
+        return;
     }
 
-    if (flag == 0) {
-        printf("Student not found!\n");
-    }
+    free(list->students[i].name);
+    list->students[i].id = temp_id;
+    list->students[i].gpa = temp_gpa;
+    list->students[i].name = temp_name;
 
     state = SAVE;
 }
@@ -319,37 +366,33 @@ void save() {
 
     fclose(f);
     state = MENU;
+    selected_index = -1;
 }
 
 void delete() {
-    unsigned int input;
-    int found = 0;
+    clear();
 
-    printf("Enter the student ID: ");
-    scanf("%u", &input);
-    while (getchar() != '\n');
-
-    for (size_t i = 0; i < list->count; i++) {
-        if (list->students[i].id == input) {
-
-            if (list->students[i].name)
-                free(list->students[i].name);
-
-            for (size_t j = i; j < list->count - 1; j++) {
-                list->students[j] = list->students[j + 1];
-            }
-
-            list->count--;
-            found = 1;
-            break;
-        }
+    if (selected_index < 0 || selected_index >= list->count) {
+        printf("No record selected!\nPress Enter to continue");
+        getchar();
+        state = MENU;
+        return;
     }
 
-    if (!found) {
-        printf("Student not found!\n");
-    } else {
-        printf("Student deleted successfully.\n");
+    int i = selected_index;
+
+    if (list->students[i].name)
+        free(list->students[i].name);
+
+    for (size_t j = i; j < list->count - 1; j++) {
+        list->students[j] = list->students[j + 1];
     }
+
+    selected_index = -1;
+    list->count--;
+
+    printf("Record deleted successfully.\nPress Enter to continue");
+    getchar();
 
     state = SAVE;
 }
@@ -359,4 +402,9 @@ void end() {
     printf("Press Enter to exit");
     getchar();
     exit(EXIT_SUCCESS);
+}
+
+void clear() {
+    printf("\033[H\033[J");
+    fflush(stdout);
 }
