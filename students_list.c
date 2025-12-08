@@ -27,7 +27,7 @@ unsigned int read_gpa = 0;
 unsigned int read_name = 0;
 int selected_index = -1;
 
-typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, SAVE, END}State;
+typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, SAVE, SEARCH, END}State;
 
 typedef struct {
     unsigned int id;
@@ -50,6 +50,7 @@ void add();
 void edit();
 void delete();
 void save();
+void search();
 void end();
 void clear();
 
@@ -65,6 +66,7 @@ int main(int argc, char** argv) {
             case EDIT: edit(); break;
             case DELETE: delete(); break;
             case SAVE: save(); break;
+            case SEARCH: search(); break;
             case END: end(); break;
             default: menu(); break;
         }
@@ -144,6 +146,7 @@ void menu() {
         printf("\nPlease choose the action and press Enter: ");
         printf("\n1 - Show students list\n");
         printf("2 - Add record\n");
+        printf("3 - Search record\n");
         printf("0 - Exit\n");
         printf("---------------------------------\n");
 
@@ -160,6 +163,7 @@ void menu() {
             switch (input) {
                 case 1: state = SHOW; return;
                 case 2: state = ADD; return;
+                case 3: state = SEARCH; return;
                 case 0: state = END; return;
                 default: return;
             }
@@ -407,4 +411,156 @@ void end() {
 void clear() {
     printf("\033[H\033[J");
     fflush(stdout);
+}
+
+void search() {
+    clear();
+
+    printf("====SEARCHING====\n");
+    printf("Choose an option: \n");
+    printf("1 - ID\n");
+    printf("2 - GPA\n");
+    printf("0 - Back to menu\n");
+    printf("----------------------------\n\n");
+
+    int option;
+    scanf("%i", &option);
+    while (getchar() != '\n');
+
+    if (option == 0) {
+        selected_index = -1;
+        state = MENU;
+        return;
+    }
+
+    if (option < 1 || option > 2) {
+        printf("Incorrect input!\nPress Enter to continue");
+        getchar();
+        state = SEARCH;
+        return;
+    }
+
+    if (option == 1) {
+        unsigned int search_id;
+        printf("Enter the ID: ");
+        scanf("%u", &search_id);
+        while (getchar() != '\n');
+
+        int found = -1;
+        for (size_t i = 0; i < list->count; i++) {
+            if (list->students[i].id == search_id) {
+                found = i;
+                break;
+            }
+        }
+
+        if (found == -1) {
+            printf("Record not found!\nPress Enter to continue");
+            getchar();
+            state = MENU;
+            return;
+        }
+
+        selected_index = found;
+
+        clear();
+        printf("====RECORD FOUND!====\n\n");
+        printf("%s\nID: %u\nGPA: %u\n",
+            list->students[found].name, list->students[found].id, list->students[found].gpa);
+
+        printf("1 - Edit record\n");
+        printf("2 - Delete record\n");
+        printf("0 - Back to menu\n");
+
+        int action;
+        scanf("%i", &action);
+        while (getchar() != '\n');
+
+        switch (action) {
+            case 1:state = EDIT; return;
+            case 2:state = DELETE; return;
+            case 0: selected_index = -1; state = MENU; return;
+            default: selected_index = -1; state = MENU; return;
+        }
+    }
+
+    if (option == 2) {
+        unsigned int search_gpa;
+        printf("Enter the GPA: ");
+        scanf("%u", &search_gpa);
+        while (getchar() != '\n');
+
+        int match_count = 0;
+        for (size_t i = 0; i < list->count; i++) {
+            if (list->students[i].gpa == search_gpa) {
+                match_count++;
+            }
+        }
+
+        if (match_count == 0) {
+            printf("Record not found!\nPress Enter to continue");
+            getchar();
+            state = MENU;
+            return;
+        }
+
+        clear();
+        printf("====SEARCH RESULTS====\n\n");
+        int* matches = malloc(match_count * sizeof(int));
+        int match_index = 0;
+
+        for (size_t i = 0; i < list->count; i++) {
+            if (list->students[i].gpa == search_gpa) {
+                matches[match_index] = i;
+                printf("%d. %s\nID: %u\nGPA: %u\n", match_index,
+                    list->students[i].name,
+                    list->students[i].id, list->students[i].gpa);
+                match_index++;
+            }
+        }
+
+        printf("Choose a record (0-%d) or -1 to go back: \n", match_count - 1);
+        int action;
+        scanf("%i", &action);
+        while (getchar() != '\n');
+
+       if (action == -1) {
+           free(matches);
+           state = MENU;
+           return;
+       }
+
+        if (action < 0 || action >= match_count) {
+            printf("Record not found!\nPress Enter to continue");
+            getchar();
+            state = MENU;
+            return;
+        }
+
+        selected_index = matches[action];
+        free(matches);
+
+        clear();
+        printf("====SELECTED RECORD====\n\n");
+
+        printf("%s\nID: %u\nGPA: %u\n",
+            list->students[selected_index].name,
+            list->students[selected_index].id,
+            list->students[selected_index].gpa);
+
+        printf("1 - Edit record\n");
+        printf("2 - Delete record\n");
+        printf("0 - Back to menu\n");
+
+        int action2;
+        scanf("%i", &action2);
+        while (getchar() != '\n');
+
+        switch (action2) {
+            case 1:state = EDIT; return;
+            case 2: state = DELETE; return;
+            case 0: selected_index = -1; state = MENU; return;
+            default: selected_index = -1; state = MENU; return;
+        }
+    }
 }
