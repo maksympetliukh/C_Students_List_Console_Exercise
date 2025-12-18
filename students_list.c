@@ -17,27 +17,28 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
-unsigned int state = 0;
-unsigned int read_count = 0;
-unsigned int read_capacity = 0;
-unsigned int read_record = 0;
-unsigned int read_id = 0;
-unsigned int read_gpa = 0;
-unsigned int read_name = 0;
-int selected_index = -1;
+uint32_t state = 0;
+uint32_t read_count = 0;
+uint32_t read_capacity = 0;
+uint32_t read_record = 0;
+uint32_t read_id = 0;
+uint32_t read_gpa = 0;
+uint32_t read_name = 0;
+int32_t selected_index = -1;//Global flag to enable required records
 
 typedef enum{START, MENU, SHOW, ADD, EDIT, DELETE, SAVE, SEARCH, END}State;
 
 typedef struct {
-    unsigned int id;
-    unsigned int gpa;
+    uint32_t id;
+    uint32_t gpa;
     char* name;
 }Student;
 
 typedef struct {
-    unsigned int count;
-    unsigned int capacity;
+    uint32_t count;
+    uint32_t capacity;
     Student* students;
 }List;
 
@@ -55,8 +56,10 @@ void end();
 void clear();
 
 int main(int argc, char** argv) {
+
     //Call  initialization function
     start();
+
     while (state != END){
         //Call the necessary action by switching states
         switch (state) {
@@ -88,8 +91,8 @@ void start() {
         list->students = NULL;
 
         //Read fields
-        read_count = fread(&list->count, sizeof(unsigned int), 1, file);
-        read_capacity = fread(&list->capacity, sizeof(unsigned int), 1, file);
+        read_count = fread(&list->count, sizeof(uint32_t), 1, file);
+        read_capacity = fread(&list->capacity, sizeof(uint32_t), 1, file);
 
         //Memory allocation for record structure
         list->students = (Student*)malloc(list->capacity * sizeof(Student));
@@ -101,16 +104,16 @@ void start() {
             list->capacity = list->count= 0;
         }
 
-        unsigned int len;
+        uint32_t len;
         for (size_t i = 0; i < list->capacity; i++) {list->students[i].name = NULL;}
 
         for (int i = 0; i < list->count; i++) {
             //read record structure fields
-            read_id = fread(&list->students[i].id, sizeof(unsigned int), 1, file);
-            read_gpa = fread(&list->students[i].gpa, sizeof(unsigned int), 1, file);
+            read_id = fread(&list->students[i].id, sizeof(uint32_t), 1, file);
+            read_gpa = fread(&list->students[i].gpa, sizeof(uint32_t), 1, file);
 
             //read a name length in a current record
-            fread(&len, sizeof(unsigned int), 1, file);
+            fread(&len, sizeof(uint32_t), 1, file);
 
             //memory allocation for name array
             list->students[i].name = malloc(len + 1);
@@ -132,8 +135,7 @@ void start() {
         fclose(file);
     }
 
-
-    //Change state for switch a mode
+    //Change state for switch an action
     state = MENU;
 }
 
@@ -156,7 +158,6 @@ void menu() {
             getchar();
             continue;
         }
-
             while (getchar() != '\n');
 
             //Choose a state
@@ -172,9 +173,11 @@ void menu() {
 
 void add() {
     clear();
+
+    //If the number of records reaches the maximum capacity, we need to increase the capacity to create new records
     if (list->count == list->capacity) {
-        unsigned int new_capacity = (list->capacity == 0) ? 8 : list->capacity * 2;
-        Student* new_students = (Student*)realloc(list->students, new_capacity * sizeof(Student));
+        uint32_t new_capacity = (list->capacity == 0) ? 8 : list->capacity * 2;
+        Student* new_students = realloc(list->students, new_capacity * sizeof(Student));
         if (new_students == NULL) {
             printf("Out of memory!\n");
             printf("Press Enter to continue");
@@ -186,8 +189,8 @@ void add() {
         list->capacity = new_capacity;
     }
 
-    unsigned int temp_id;
-    unsigned int temp_gpa;
+    uint32_t temp_id;
+    uint32_t temp_gpa;
     char* temp_name = NULL;
     size_t size = 0;
 
@@ -301,12 +304,13 @@ void edit() {
 
     int i = selected_index;
 
-    unsigned int temp_id;
-    unsigned int temp_gpa;
+    uint32_t temp_id;
+    uint32_t temp_gpa;
     char* temp_name = NULL;
     size_t size = 0;
-    unsigned int unique;
+    uint32_t unique;
 
+    //New ID uniqueness check
     do {
         unique = 0;
         printf("Enter new ID: ");
@@ -343,7 +347,7 @@ void edit() {
         return;
     }
 
-    free(list->students[i].name);
+    free(list->students[i].name);//free memory allocated for old name
     list->students[i].id = temp_id;
     list->students[i].gpa = temp_gpa;
     list->students[i].name = temp_name;
@@ -355,16 +359,17 @@ void save() {
     FILE* f = fopen("students.dat", "wb");
     if (!f){printf("Can't open file!\n"); return;}
 
-    read_count = fwrite(&list->count, sizeof(unsigned int), 1, f);
-    read_capacity = fwrite(&list->capacity, sizeof(unsigned int), 1, f);
+    read_count = fwrite(&list->count, sizeof(uint32_t), 1, f);
+    read_capacity = fwrite(&list->capacity, sizeof(uint32_t), 1, f);
 
+    //write changes in record
     for (size_t i = 0; i < list->count; i++) {
-        fwrite(&list->students[i].id, sizeof(unsigned int), 1, f);
-        fwrite(&list->students[i].gpa, sizeof(unsigned int), 1, f);
+        fwrite(&list->students[i].id, sizeof(uint32_t), 1, f);
+        fwrite(&list->students[i].gpa, sizeof(uint32_t), 1, f);
 
         unsigned int len = strlen(list->students[i].name) + 1;
 
-        fwrite(&len, sizeof(unsigned int), 1, f);
+        fwrite(&len, sizeof(uint32_t), 1, f);
         fwrite(list->students[i].name, sizeof(char), len, f);
     }
 
@@ -385,9 +390,12 @@ void delete() {
 
     int i = selected_index;
 
-    if (list->students[i].name)
+    //free memory allocated for the name
+    if (list->students[i].name) {
         free(list->students[i].name);
+    }
 
+    //Clear record fields and decrease records count
     for (size_t j = i; j < list->count - 1; j++) {
         list->students[j] = list->students[j + 1];
     }
@@ -433,7 +441,7 @@ void search() {
         return;
     }
 
-    if (option < 1 || option > 2) {
+    if (option < 0 || option > 2) {
         printf("Incorrect input!\nPress Enter to continue");
         getchar();
         state = SEARCH;
@@ -441,13 +449,14 @@ void search() {
     }
 
     if (option == 1) {
-        unsigned int search_id;
+        uint32_t search_id;
         printf("Enter the ID: ");
         scanf("%u", &search_id);
         while (getchar() != '\n');
 
-        int found = -1;
-        for (size_t i = 0; i < list->count; i++) {
+        int32_t found = -1;//Local flag to enable required record
+        //Ensure required and record ID match
+        for (int32_t i = 0; i < list->count; i++) {
             if (list->students[i].id == search_id) {
                 found = i;
                 break;
@@ -484,14 +493,15 @@ void search() {
         }
     }
 
+    //Searching with GPA value
     if (option == 2) {
-        unsigned int search_gpa;
+        uint32_t search_gpa;
         printf("Enter the GPA: ");
         scanf("%u", &search_gpa);
         while (getchar() != '\n');
 
         int match_count = 0;
-        for (size_t i = 0; i < list->count; i++) {
+        for (int32_t i = 0; i < list->count; i++) {
             if (list->students[i].gpa == search_gpa) {
                 match_count++;
             }
@@ -506,10 +516,12 @@ void search() {
 
         clear();
         printf("====SEARCH RESULTS====\n\n");
-        int* matches = malloc(match_count * sizeof(int));
-        int match_index = 0;
 
-        for (size_t i = 0; i < list->count; i++) {
+        //Memory allocation for the array of the matches
+        int32_t* matches = malloc(match_count * sizeof(int32_t));
+        int32_t match_index = 0;
+
+        for (int32_t i = 0; i < list->count; i++) {
             if (list->students[i].gpa == search_gpa) {
                 matches[match_index] = i;
                 printf("%d. %s\nID: %u\nGPA: %u\n", match_index,
@@ -533,6 +545,7 @@ void search() {
         if (action < 0 || action >= match_count) {
             printf("Record not found!\nPress Enter to continue");
             getchar();
+            free(matches);
             state = MENU;
             return;
         }
